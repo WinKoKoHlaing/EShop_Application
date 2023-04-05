@@ -1,0 +1,297 @@
+Auth
+====
+-bulild AdminMiddleware
+
+
+Frontend
+========
+   IndexPage      => 1.(sliderPage)
+                     2.(trendingProduct) => product('trending','1') 
+                     3.(popularCategory) => category('status','0') => (product-detail)
+
+   CategoryPage   => 1.(allCategory) => category related (products) => (product-detail)
+
+   Login/Register =>
+
+=================== process ===================
+-qty increment & decrement
+-create add to carts => table_migration, model, controller 
+-create carts view page
+-remove products from carts lists
+-total price => (total += price * qty)
+-update qty from cart_tables and change prices
+-checkout
+lesson-26 stock availability in cart_page & stock validation in checkout_page (proceed to checkout)
+
+===============================================
+
+create add to carts (*only for auth user)
+=========================================
+- create carts_table migration
+- string('user_id'),('product_id'),('product_qty')
+- protected cart model
+- frontend/CartController
+
+- addToCartBtn . click => product_id => input.hidden($product->id).val();
+                          qty        => input.val();
+
+
+
+
+
+
+
+- cart data carry by jquery ajax
+- create route and connect with ajax
+- ajax data carry to controller
+- method:"post",url="/add-to-cart",data:{product_id,product_qty},success:function(response)=>response.success
+
+- controller response json to ajax with two situations => 1. product added to cart.
+                                                          2. product already added to cart.
+                                                          3. please,login first!
+                                                   
+create cart view page
+=====================
+- carts where user_id === Auth::id() => products
+
+remove products from cart_tables
+================================
+- product_id from => input["hidden"]
+- ajax transfer product_id & product_qty to controller 
+- $cartItem = Cart::where('product_id',$product_id)->where('user_id',Auth::id())->first();
+- $cartItem->delete();
+
+update qty from cart_tables and change prices
+=============================================
+- product_id from => input["hidden"]
+- ajax transfer product_id & product_qty to controller 
+- $cartItem = Cart::where('product_id',$product_id)->where('user_id',Auth::id())->first();
+- $cartItem->product_qty = $request->input('product_qty');
+- $cartItem->update();
+
+checkout
+========
+- create Frontend/CheckoutController
+
+checkout.order_details
+======================
+- Auth::id() -> cartItems
+
+checkout.basic_details
+======================
+-
+
+
+
+stock availability in cart_page 
+===============================
+($cart->products->qty >= $cart->product_qty){
+   process......
+}else{
+   Out of Stock
+}
+
+stock validation in checkout_page (proceed to checkout)
+=======================================================
+cart-page(proceed to checkout) -> checkout-page
+
+$old_cartItems = Cart::where('user_id',Auth::id())->get();
+foreach($old_cartItems as $cart){
+   if(!Product::where('id',$cart->product_id)->where('qty','>=',$cart->product_qty)->exists()){
+         $removeItem = Cart::where('user_id',Auth::id())->where('product_id',$cart->product_id)->first();
+         $removeItem->delete();
+   }
+}
+$cartItems = Cart::where('user_id',Auth::id())->get();
+return view('frontend.checkout',compact('cartItems'));
+
+
+Product Order Process ('/cart' , '/checkout' , '/') frontend
+============================================================
+Cart => Cart::Auth-user()->get() => (proceed-to-checkout-btn)
+Checkout => 1.Auth-user->details
+            2.Cart->products()->[name,qty,price] => (place-order-btn)
+
+
+
+
+myorder (frontend)
+==========================
+order => Order:: tracking_number , total_price , status , action(details)
+note => one order has many orderItems exists.
+
+myorder_view ($order->id)
+=========================
+-shopping details (Order => fname,lname,email,phone.....)
+
+-order details (Order->OrderItem , OrderItem->products)
+OrderItem->produts->name;
+Order->OrderItem->qty;
+Order->OrderItem->price;
+OrderItem->produts->image;
+
+
+Order index (backend)
+=====================
+Order => (status == 0)->get();
+
+Order view (backend)
+====================
+Order->id :: find($id)
+
+Order update (status)
+=====================
+( <select/> <optin/> value=[0,1] ) => $request->input('input_value');
+$order->status->update();
+
+Order history (backend)
+=======================
+Order => (status == 1)->get();
+
+
+
+
+add to wishlist
+===============
+Auth::check();
+wishlist-btn => ajax(product_id) => controller(product_id => Prduct::check()->first());
+product_check => (Product::exists)
+wishlist_check(true) => Already : $wishlist->save()
+
+view wishlist
+=============
+wishlist => (user_id,Auth::id())->get();
+
+remove wishlist
+===============
+Auth::check();
+$wishlist => product_id , Auth::id()->first();
+$wishlist->delete();
+
+wishlist count
+==============
+[ $wishlist => Auth::id()->count() ] Controller to Ajax [assign to html text]
+
+
+===================== frontend folder structure =======================
+public
+======
+frontend.css    => bootstrap5.min.css
+                   custom.css
+                   owl.carousel.min.css
+                   owl.theme.default.min.css
+
+frontend.js     => bootstrap5.bundle.min.js
+                   custom.js *(connect ajax to controller)
+                   jquery-3.6.3.min.js
+                   owl.carousel.min.js
+
+frontend.images => 3 sliders photo
+
+
+
+Models
+======
+- Cart.php     (belongs to products => 'product_id')
+- Category.php
+- Product.php  (belongs to category => 'category_id')
+- User.php 
+- Order.php (hasMany to orderItem)
+- OrderItem.php (belongs to products => 'product_id')
+- Wishlist.php (belongs to products => 'product_id')
+
+
+migrations
+==========
+- create_users_table => *update (lastname,email,phone,address1,address2,city,state,country,pincode) 
+                     => varchar(191)
+- create_categories_table
+- create_products_table
+- create_carts_table
+- create_orders_table
+- create_orders_items_table
+- create_wishlists_table
+
+
+views
+=====
+frontend.layouts => frontend_master.blade.php
+                    navbar.blade.php
+                    slider.blade.php
+                    footer.blade.php
+
+frontend => index.blade.php
+            category.blade.php
+            category_view.blade.php
+            product_view.blade.php
+            cart.blade.php
+            checkout.blade.php
+            myorder.blade.php
+            myorder_view.blade.php
+            wishlist.blade.php
+
+
+controller
+==========
+Frontend => CartController.php
+            CheckoutController.php
+            FrontendController.php
+            UserController.php
+            WishlistController.php
+
+
+===================== backend folder structure =======================
+public
+======
+backend.css    =>  fontawesome
+                   main.css
+
+backend.js     =>  plugins
+                   bootstrp.min.js
+                   jquery-3.3.1.min.js
+                   main.js
+                   popper.min.js
+
+backend.images =>  admin.jpg
+                   banner.jpg
+
+
+Models
+======
+
+migrations
+==========
+- create_categories_table
+- create_products_table
+
+
+views
+=====
+backend.layouts =>  backend_master.blade.php
+                    flash_message.blade.php
+                    header_nav.blade.php
+                    sidebar_nav.blade.php
+
+backend.category => index.blade.php
+                    create.blade.php
+                    edit.blade.php
+                    show.blade.php
+
+backend.product =>  index.blade.php
+                    create.blade.php
+                    edit.blade.php
+                    show.blade.php  
+
+backend.order   =>  index.blade.php (Order)
+                    view.blade.php (Order)(OrderItem) => (status confirmation process)
+                    history.blade.php => (comfirmed status)
+
+backend.user    =>  index.blade.php (User)
+                    view.blade.php (User->id)
+
+controller
+==========
+- DashboardController.php
+- CategoryController.php
+- ProductController.php
+- OrderController.php
